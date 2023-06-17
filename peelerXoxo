@@ -1,0 +1,67 @@
+#!/bin/bash
+
+print_help() {
+  echo "PeelerXoxo - Skript pro vymazávání znaků z názvu souboru"
+  echo "Použití: ./PeelerXoxo [přepínače]"
+  echo "Přepínače:"
+  echo "  -p <integer>  Vymaže <integer> znaků z názvu souboru (default: 0)"
+  echo "  -e <koncovka> Zkrátí názvy souborů jen s danou <koncovkou> (default: všechn typy souborů)"
+  echo "  -w <string> Vymaže <string> z názvů souborů"
+  echo "  -h          Vypíše tuto nápovědu"
+}
+
+while getopts ":p:e:w:h" opt; do
+  case ${opt} in
+    p)
+      if ! [[ "${OPTARG}" =~ ^[0-9]+$ ]]; then
+        echo "Error: Přepínač -p vyžaduje celé číslo jako argument." >&2
+        exit 1
+      fi
+      delete_chars=${OPTARG}
+      ;;
+    e)
+      extension=${OPTARG}
+      ;;
+    w)
+      delete_string=${OPTARG}
+      ;;
+    h)
+      print_help
+      exit 0
+      ;;
+    \?)
+      echo "Error: Neplatný přepínač -${OPTARG}" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ ${OPTIND} -eq 1 ]]; then
+  echo "Error: Musíte zadat alespoň jeden přepínač." >&2
+  print_help
+  exit 1
+fi
+
+script_name=$(basename "$0")
+
+peel_files() {
+  local file
+  for file in *; do
+    if [[ -z ${extension} || ${file} == *"${extension}" ]]; then
+      if [[ ${file} != ${script_name} ]]; then
+        local peeled_file=${file:delete_chars}
+        if [[ -n ${delete_string} ]]; then
+          peeled_file=${peeled_file//${delete_string}/}
+        fi
+        if [[ ${file} != ${peeled_file} && ${peeled_file} != ${script_name} ]]; then
+          read -p "Přepsat soubor '${file}' na '${peeled_file}'? (y/n [n]) " answer
+          if [[ ${answer} == "y" ]]; then
+            mv -i "${file}" "${peeled_file}"
+          fi
+        fi
+      fi
+    fi
+  done
+}
+
+peel_files
